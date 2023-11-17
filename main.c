@@ -24,8 +24,17 @@ int loadProducts(struct Product product[])
 
     if (file == NULL)
     {
-        printf("Erro ao abrir o arquivo.\n");
-        exit(1);
+        printf("\n--------------------\nO arquivo não existe. Criando um novo...\n-----------------------\n");
+        FILE *file = fopen("../estoque.csv", "w");
+        if (file == NULL)
+        {
+            printf("Erro ao abrir o arquivo, no load.\n");
+            exit(1);
+        } else
+        {
+            fclose(file);
+            return 0;
+        }
     }
 
     // Ignora a primeira linha (cabeçalho)
@@ -48,7 +57,7 @@ void saveProducts(struct Product products[], int count)
     FILE *file = fopen("../estoque.csv", "w");
     if (file == NULL)
     {
-        printf("Erro ao abrir o arquivo.\n");
+        printf("Erro ao abrir o arquivo, ao salvar.\n");
         exit(1);
     }
 
@@ -127,7 +136,7 @@ void sellProduct(struct Product products[], int count, struct Seller *seller)
     printf("Digite o ID do produto que deseja vender: ");
     scanf("%d", &productId);
 
-    //Verifica se o ID é valido
+    // Verifica se o ID é valido
     if (productId <= 0 || productId > count)
     {
         printf("ID de produto inválido.\n");
@@ -137,7 +146,7 @@ void sellProduct(struct Product products[], int count, struct Seller *seller)
     printf("Digite a quantidade a ser vendida: ");
     scanf("%d", &quantity);
 
-    //Verifica se a quantidade de itens digitada existe em estoque
+    // Verifica se a quantidade de itens digitada existe em estoque
     if (quantity <= 0 || quantity > products[productId - 1].quantity)
     {
         printf("Quantidade inválida ou insuficiente em estoque.\n");
@@ -226,11 +235,11 @@ int main()
             editProduct(products, productCount, editID - 1);
             break;
         case 5:
-            //vender o produto
+            // vender o produto
             sellProduct(products, productCount, &seller);
             break;
         case 6:
-            //consultar o saldo
+            // consultar o saldo
             consultBalance(&seller);
             break;
         case 0:
@@ -238,7 +247,7 @@ int main()
             printf("Saindo do programa.\n");
             break;
         default:
-            //caso digite um inexistente: 
+            // caso digite um inexistente:
             printf("Opção inválida. Tente novamente.\n");
         }
     } while (choice != 0);
