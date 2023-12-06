@@ -35,11 +35,28 @@ void showMessage(const char *message)
     printf("%s", message);
     printf("\n\n////////////////////////////////////////////\n\n");
 }
+/* void isEmptyFile(FILE *file, struct Seller *seller)
+{
+    // Verifica se o arquivo está vazio
+    fseek(file, 0, SEEK_END); // Posiciona o cursor no final do arquivo
+    if (ftell(file) == 0)
+    {
+        // Se o arquivo estiver vazio, escrever o cabeçalho e define o balnce inicialmente como 0
+        fprintf(file, "Id\tNome\tPreco\tQuantidade\tSaldoT");
+        seller->balance = 0;
+    }
+} */
 
-int loadProducts(struct Product product[])
+int loadProducts(struct Product product[], struct Seller *seller)
 {
     FILE *file = fopen("./estoque.csv", "r");
+    
+    //caso não tenha nada no arquivo o "balance" inicial é 0
+    fseek(file, 0, SEEK_END); // Posiciona o cursor no fim do arquivo
+    if (ftell(file) == 0) seller->balance = 0;
+    fseek(file, 0, SEEK_SET); // Posiciona o cursor no início do arquivo
 
+    //fclose(file);
     if (file == NULL)
     {
         printf("\n--------------------\nO arquivo não existe. Criando um novo...\n-----------------------\n");
@@ -59,44 +76,68 @@ int loadProducts(struct Product product[])
     // Ignora a primeira linha (cabeçalho)
     fscanf(file, "%*[^\n]\n");
 
-    // Lê os dados já existentes do arquivo
     int count = 0;
+    // Lê os dados já existentes do arquivo
+    // na primeira linha pós cabeçalho escrever o saldo do balance
+    if(count == 0)
+    {
+        if(fscanf(file, "%d\t%s\tR$%f\t%d\t%f\n", &product[count].id, product[count].name, &product[count].price, &product[count].quantity, &seller->balance) == 5){
+            count++;
+        }
+    } 
+
     while (fscanf(file, "%d\t%s\tR$%f\t%d\n", &product[count].id, product[count].name, &product[count].price, &product[count].quantity) == 4)
     {
         count++;
     }
-
+    
     fclose(file);
 
     return count; // Retorna a quantidade de elementos
 }
 
-void saveProducts(struct Product products[], int count)
+void saveProducts(struct Product products[], int count, struct Seller *seller)
 {
     FILE *file = fopen("./estoque.csv", "w");
+
     if (file == NULL)
     {
         printf("Erro ao abrir o arquivo, ao salvar.\n");
         exit(1);
     }
 
-    // Verifica se o arquivo está vazio
     fseek(file, 0, SEEK_END); // Posiciona o cursor no final do arquivo
     if (ftell(file) == 0)
     {
-        // Se o arquivo estiver vazio, escrever o cabeçalho
-        fprintf(file, "Id\tNome\tPreco\tQuantidade");
+        // Se o arquivo estiver vazio, escrever o cabeçalho e define o balnce inicialmente como 0
+        fprintf(file, "Id\tNome\tPreco\tQuantidade\tSaldoT");
     }
 
     // Escreve os novos dados
     for (int i = 0; i < count; i++)
     {
-        fprintf(file, "\n%d\t%s\tR$%.2f\t%d", products[i].id = i + 1, products[i].name, products[i].price, products[i].quantity);
+        if(i == 0)
+        {
+            //se i for igual a 0, ele estará na linha onde contém o saldo e quero escrever isso.
+            fprintf(file, "\n%d\t%s\tR$%.2f\t%d\t%f", products[i].id = i + 1, products[i].name, products[i].price, products[i].quantity, seller->balance);
+        } else{
+            fprintf(file, "\n%d\t%s\tR$%.2f\t%d", products[i].id = i + 1, products[i].name, products[i].price, products[i].quantity);
+        }
     }
 
     fclose(file);
 
     showMessage("Produto cadastrado com sucesso!");
+}
+
+void auxSaveProducts(struct Seller *seller)
+{
+    printf("\n** (Caso não tenha, digite 0 - será subtraido no valor do saldo total) **\n");
+    printf("** Esse é o valor do custo TOTAL que você teve com o produto **\n");
+    printf("Preço de custo: ");
+    float itemPrice;
+    scanf("%f", &itemPrice);
+    seller->balance -= itemPrice;
 }
 
 void showProducts(struct Product products[], int count)
@@ -115,6 +156,8 @@ void showProducts(struct Product products[], int count)
 
 void deleteProduct(struct Product products[], int *count, int index)
 {
+    struct Seller seller;
+
     if (index >= 0 && index < *count)
     {
         // loop for define o indice digitado como sendo a variavel "i";
@@ -127,7 +170,7 @@ void deleteProduct(struct Product products[], int *count, int index)
             products[i].quantity = products[i + 1].quantity;
         }
         (*count)--;
-        saveProducts(products, *count);
+        saveProducts(products, *count, &seller);
 
         showMessage("Produto excluído com sucesso!");
     }
@@ -140,6 +183,7 @@ void deleteProduct(struct Product products[], int *count, int index)
 void editProduct(struct Product products[], int count, int index)
 {
     int editChoice = 0;
+    struct Seller seller;
 
     // condição para editar somente se o indice digitado por válido
     if (index >= 0 && index < count)
@@ -172,7 +216,7 @@ void editProduct(struct Product products[], int count, int index)
         // caso o número digitado esteja entre as opções validas
         if (editChoice > 0 && editChoice < 4)
         {
-            saveProducts(products, count);
+            saveProducts(products, count, &seller);
             showMessage("Produto editado com sucesso!");
         }
     }
@@ -214,6 +258,8 @@ void sellProduct(struct Product products[], int count, struct Seller *seller)
 
     // Adiciona o valor ao saldo do vendedor
     seller->balance += totalSale;
+    printf("valor: %f\n", seller->balance);
+    saveProducts(products, count, seller);
 
     printf("\n\n////////////////////////////////////////////\n\n");
     printf("Venda realizada com sucesso! Total: R$ %.2f", totalSale);
@@ -231,12 +277,12 @@ int main()
 {
     setlocale(LC_ALL, "Portuguese");
     welcomeMessage();
-
     // definição de estruturas e varivaveis
     struct Product products[MAX_PRODUCTS];
-    int productCount = loadProducts(products);
-    int choice;
     struct Seller seller;
+    int productCount = loadProducts(products, &seller);
+    int choice;
+
     // loop do-while com um switch case o qual é feito para escolher as opções, enquanto o usuario não encerrar o programa
     do
     {
@@ -265,7 +311,8 @@ int main()
                 scanf("%d", &products[productCount].quantity);
 
                 productCount++;
-                saveProducts(products, productCount);
+                auxSaveProducts(&seller);
+                saveProducts(products, productCount, &seller);
             }
             else
             {
