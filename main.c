@@ -159,12 +159,19 @@ void showProducts(struct Product products[], int count)
     printf("\n////////////////////////////////////////////\n\n");
 }
 
-void deleteProduct(struct Product products[], int *count, int index)
+void deleteProduct(struct Product products[], int *count, int index, struct Seller *seller)
 {
-    struct Seller seller;
+    if (*count == 1)
+    {
+        showMessage("Você tem somente um item. Não é possivel excluir.");
+        return;
+    }
 
     if (index >= 0 && index < *count)
     {
+        // Armazena o saldo antes da exclusão
+        float balanceBeforeDelete = seller->balance;
+
         // loop for define o indice digitado como sendo a variavel "i";
         // count - 1, para iterar sobre todos os elementos - 1;
         // i++, para iterar sobre todos os outros elementos depois dele
@@ -174,9 +181,16 @@ void deleteProduct(struct Product products[], int *count, int index)
             products[i].price = products[i + 1].price;
             products[i].quantity = products[i + 1].quantity;
         }
-        (*count)--;
-        saveProducts(products, *count, &seller);
 
+        (*count)--;
+
+        // Se o produto excluído estava na primeira linha, move o saldo para a próxima linha
+        if (index == 0)
+        {
+            seller->balance = balanceBeforeDelete;
+        }
+
+        saveProducts(products, *count, seller);
         showMessage("Produto excluído com sucesso!");
     }
     else
@@ -185,10 +199,9 @@ void deleteProduct(struct Product products[], int *count, int index)
     }
 }
 
-void editProduct(struct Product products[], int count, int index)
+void editProduct(struct Product products[], int count, int index, struct Seller *seller)
 {
     int editChoice = 0;
-    struct Seller seller;
 
     // condição para editar somente se o indice digitado por válido
     if (index >= 0 && index < count)
@@ -221,7 +234,7 @@ void editProduct(struct Product products[], int count, int index)
         // caso o número digitado esteja entre as opções validas
         if (editChoice > 0 && editChoice < 4)
         {
-            saveProducts(products, count, &seller);
+            saveProducts(products, count, seller);
             showMessage("Produto editado com sucesso!");
         }
     }
@@ -337,7 +350,7 @@ int main()
             printf("Digite o ID do produto a ser excluído: ");
             int deleteID;
             scanf("%d", &deleteID);
-            deleteProduct(products, &productCount, deleteID - 1);
+            deleteProduct(products, &productCount, deleteID - 1, &seller);
             break;
         case 4:
             // chamando a função de exibir produtos para poder visualizar os ids antes de editar
@@ -347,7 +360,7 @@ int main()
             printf("Digite o ID do produto a ser editado: ");
             int editID;
             scanf("%d", &editID);
-            editProduct(products, productCount, editID - 1);
+            editProduct(products, productCount, editID - 1, &seller);
             break;
         case 5:
             // chamando a função de exibir produtos para poder visualizar os ids antes de vender
