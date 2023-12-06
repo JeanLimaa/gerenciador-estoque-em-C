@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <locale.h>
 
 #define MAX_PRODUCTS 100
 #define MAX_NAME_LENGTH 50
@@ -18,19 +19,37 @@ struct Seller
     float balance;
 };
 
+void welcomeMessage()
+{
+    printf("\n\n------------------------------------------------------------------\n\n");
+    printf("*******************************************************************\n\n");
+    printf("            Bem-vindo ao seu Gerenciador de estoque!              \n");
+    printf("                   by: Vision Softwares\n\n"); // nome ficticio
+    printf("*******************************************************************\n");
+    printf("------------------------------------------------------------------\n\n");
+}
+
+void showMessage(const char *message)
+{
+    printf("\n\n////////////////////////////////////////////\n\n");
+    printf("%s", message);
+    printf("\n\n////////////////////////////////////////////\n\n");
+}
+
 int loadProducts(struct Product product[])
 {
-    FILE *file = fopen("../estoque.csv", "r");
+    FILE *file = fopen("./estoque.csv", "r");
 
     if (file == NULL)
     {
         printf("\n--------------------\nO arquivo não existe. Criando um novo...\n-----------------------\n");
-        FILE *file = fopen("../estoque.csv", "w");
+        FILE *file = fopen("./estoque.csv", "w");
         if (file == NULL)
         {
             printf("Erro ao abrir o arquivo, no load.\n");
             exit(1);
-        } else
+        }
+        else
         {
             fclose(file);
             return 0;
@@ -54,7 +73,7 @@ int loadProducts(struct Product product[])
 
 void saveProducts(struct Product products[], int count)
 {
-    FILE *file = fopen("../estoque.csv", "w");
+    FILE *file = fopen("./estoque.csv", "w");
     if (file == NULL)
     {
         printf("Erro ao abrir o arquivo, ao salvar.\n");
@@ -76,23 +95,31 @@ void saveProducts(struct Product products[], int count)
     }
 
     fclose(file);
+
+    showMessage("Produto cadastrado com sucesso!");
 }
 
-void listProducts(struct Product products[], int count)
+void showProducts(struct Product products[], int count)
 {
-    printf("Lista de Produtos:\n");
-    printf("Id\tNome\tPreço\tQuantidade\n");
+    printf("\n\n////////////////////////////////////////////\n\n");
+    printf("Lista de Produtos:\n\n");
+    printf("Id\t\t\tNome\t\t\tPreço\t\t\tEm estoque\n");
 
+    //iterar sobre todos os produtos e exibir um a um
     for (int i = 0; i < count; i++)
     {
-        printf("%d\t%s\tR$%.2f\t%d\n", products[i].id, products[i].name, products[i].price, products[i].quantity);
+        printf("%d\t\t\t%s\t\t\tR$%.2f\t\t\t%d\n", products[i].id, products[i].name, products[i].price, products[i].quantity);
     }
+    printf("\n////////////////////////////////////////////\n\n");
 }
 
 void deleteProduct(struct Product products[], int *count, int index)
 {
     if (index >= 0 && index < *count)
     {
+        // loop for define o indice digitado como sendo a variavel "i";
+        // count - 1, para iterar sobre todos os elementos - 1;
+        // i++, para iterar sobre todos os outros elementos depois dele
         for (int i = index; i < *count - 1; i++)
         {
             strcpy(products[i].name, products[i + 1].name);
@@ -101,27 +128,53 @@ void deleteProduct(struct Product products[], int *count, int index)
         }
         (*count)--;
         saveProducts(products, *count);
-        printf("Produto excluído com sucesso!\n");
+
+        showMessage("Produto excluído com sucesso!");
     }
     else
     {
-        printf("Índice inválido. Produto não encontrado.\n");
+        showMessage("Índice inválido. Produto não encontrado.");
     }
 }
 
 void editProduct(struct Product products[], int count, int index)
 {
+    int editChoice = 0;
+
+    // condição para editar somente se o indice digitado por válido
     if (index >= 0 && index < count)
     {
-        printf("Novo nome do produto: ");
-        scanf("%s", products[index].name);
-        printf("Novo preço: ");
-        scanf("%f", &products[index].price);
-        printf("Nova quantidade: ");
-        scanf("%d", &products[index].quantity);
+        // perguntando o que ele deseja editar
+        printf("\nO que deseja editar?\n\n1. Nome\n2. Preço\n3. Quantidade em estoque\n0. Voltar\n\nDigite a opção: ");
+        scanf("%d", &editChoice);
 
-        saveProducts(products, count);
-        printf("Produto editado com sucesso!\n");
+        switch (editChoice)
+        {
+        case 1:
+            printf("Novo nome do produto: ");
+            scanf("%s", products[index].name);
+            break;
+        case 2:
+            printf("Novo preço: ");
+            scanf("%f", &products[index].price);
+            break;
+        case 3:
+            printf("Nova quantidade: ");
+            scanf("%d", &products[index].quantity);
+            break;
+        case 0:
+            printf("\n\nVoltando...\n\n");
+            break;
+        default:
+            showMessage("Opção inválida!");
+        }
+
+        // caso o número digitado esteja entre as opções validas
+        if (editChoice > 0 && editChoice < 4)
+        {
+            saveProducts(products, count);
+            showMessage("Produto editado com sucesso!");
+        }
     }
     else
     {
@@ -149,7 +202,7 @@ void sellProduct(struct Product products[], int count, struct Seller *seller)
     // Verifica se a quantidade de itens digitada existe em estoque
     if (quantity <= 0 || quantity > products[productId - 1].quantity)
     {
-        printf("Quantidade inválida ou insuficiente em estoque.\n");
+        printf("\n\n** Quantidade inválida ou insuficiente em estoque. **\n\n");
         return;
     }
 
@@ -162,34 +215,39 @@ void sellProduct(struct Product products[], int count, struct Seller *seller)
     // Adiciona o valor ao saldo do vendedor
     seller->balance += totalSale;
 
-    printf("Venda realizada com sucesso! Total: R$ %.2f\n", totalSale);
+    printf("\n\n////////////////////////////////////////////\n\n");
+    printf("Venda realizada com sucesso! Total: R$ %.2f", totalSale);
+    printf("\n\n////////////////////////////////////////////\n\n");
 }
 
 void consultBalance(struct Seller *seller)
 {
-    printf("\n///////////////////////////////\n\n");
-    printf("O seu saldo atual é: R$ %.2f\n", seller->balance);
-    printf("\n///////////////////////////////\n");
+    printf("\n\n////////////////////////////////////////////\n\n");
+    printf("O seu saldo atual é: R$ %.2f", seller->balance);
+    printf("\n\n////////////////////////////////////////////\n\n");
 }
 
 int main()
 {
+    setlocale(LC_ALL, "Portuguese");
+    welcomeMessage();
+
+    // definição de estruturas e varivaveis
     struct Product products[MAX_PRODUCTS];
     int productCount = loadProducts(products);
     int choice;
     struct Seller seller;
-    seller.balance = 0;
-
+    // loop do-while com um switch case o qual é feito para escolher as opções, enquanto o usuario não encerrar o programa
     do
     {
+        printf("\n* Digite o número da ação que deseja *\n");
         printf("\n1. Cadastrar novo produto\n");
-        printf("2. Listar produtos\n");
+        printf("2. Exibir produtos\n");
         printf("3. Excluir produto\n");
         printf("4. Editar produto\n");
         printf("5. Vender produto\n");
-        printf("////////////////////\n");
         printf("6. Consultar saldo\n");
-        printf("0. Sair\n");
+        printf("0. Sair\n\n");
         printf("Escolha uma opção: ");
         scanf("%d", &choice);
 
@@ -201,15 +259,13 @@ int main()
                 // cadastrar produto
                 printf("Nome do produto: ");
                 scanf("%s", products[productCount].name);
-                printf("Preço: ");
+                printf("Preço (R$): ");
                 scanf("%f", &products[productCount].price);
                 printf("Quantidade: ");
                 scanf("%d", &products[productCount].quantity);
 
                 productCount++;
                 saveProducts(products, productCount);
-
-                printf("Produto cadastrado com sucesso!\n");
             }
             else
             {
@@ -218,9 +274,12 @@ int main()
             break;
         case 2:
             // listar os produtos
-            listProducts(products, productCount);
+            showProducts(products, productCount);
             break;
         case 3:
+            // chamando a função de exibir produtos para poder visualizar os ids antes de excluir
+            showProducts(products, productCount);
+
             // Excluir produto
             printf("Digite o ID do produto a ser excluído: ");
             int deleteID;
@@ -228,6 +287,9 @@ int main()
             deleteProduct(products, &productCount, deleteID - 1);
             break;
         case 4:
+            // chamando a função de exibir produtos para poder visualizar os ids antes de editar
+            showProducts(products, productCount);
+
             // Editar produto
             printf("Digite o ID do produto a ser editado: ");
             int editID;
@@ -235,6 +297,8 @@ int main()
             editProduct(products, productCount, editID - 1);
             break;
         case 5:
+            // chamando a função de exibir produtos para poder visualizar os ids antes de vender
+            showProducts(products, productCount);
             // vender o produto
             sellProduct(products, productCount, &seller);
             break;
