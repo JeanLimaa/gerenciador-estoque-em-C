@@ -35,23 +35,13 @@ void showMessage(const char *message)
     printf("%s", message);
     printf("\n\n////////////////////////////////////////////\n\n");
 }
-/* void isEmptyFile(FILE *file, struct Seller *seller)
-{
-    // Verifica se o arquivo está vazio
-    fseek(file, 0, SEEK_END); // Posiciona o cursor no final do arquivo
-    if (ftell(file) == 0)
-    {
-        // Se o arquivo estiver vazio, escrever o cabeçalho e define o balnce inicialmente como 0
-        fprintf(file, "Id\tNome\tPreco\tQuantidade\tSaldoT");
-        seller->balance = 0;
-    }
-} */
 
 int loadProducts(struct Product product[], struct Seller *seller)
 {
+    //startBalanceZero(&seller);
     FILE *file = fopen("./estoque.csv", "r");
     
-    //caso não tenha nada no arquivo o "balance" inicial é 0
+     //caso não tenha nada no arquivo o "balance" inicial é 0
     fseek(file, 0, SEEK_END); // Posiciona o cursor no fim do arquivo
     if (ftell(file) == 0) seller->balance = 0;
     fseek(file, 0, SEEK_SET); // Posiciona o cursor no início do arquivo
@@ -98,7 +88,14 @@ int loadProducts(struct Product product[], struct Seller *seller)
 
 void saveProducts(struct Product products[], int count, struct Seller *seller)
 {
-    FILE *file = fopen("./estoque.csv", "w");
+    FILE *file = fopen("./estoque.csv", "r");
+/*     //caso não tenha nada no arquivo o "balance" inicial é 0
+    fseek(file, 0, SEEK_END); // Posiciona o cursor no fim do arquivo
+    if (ftell(file) == 0) seller->balance = 0;
+    fseek(file, 0, SEEK_SET); // Posiciona o cursor no início do arquivo
+    fclose(file); */
+
+    file = fopen("./estoque.csv", "w");
 
     if (file == NULL)
     {
@@ -134,9 +131,17 @@ void auxSaveProducts(struct Seller *seller)
 {
     printf("\n** (Caso não tenha, digite 0 - será subtraido no valor do saldo total) **\n");
     printf("** Esse é o valor do custo TOTAL que você teve com o produto **\n");
-    printf("Preço de custo: ");
+
     float itemPrice;
-    scanf("%f", &itemPrice);
+    do {
+        printf("Preço de custo: ");
+        scanf("%f", &itemPrice);
+
+        if (itemPrice < 0) {
+            printf("O preço não pode ser negativo. Tente novamente.\n");
+        }
+    } while (itemPrice < 0);
+    
     seller->balance -= itemPrice;
 }
 
@@ -260,7 +265,7 @@ void sellProduct(struct Product products[], int count, struct Seller *seller)
     seller->balance += totalSale;
     printf("valor: %f\n", seller->balance);
     saveProducts(products, count, seller);
-
+    
     printf("\n\n////////////////////////////////////////////\n\n");
     printf("Venda realizada com sucesso! Total: R$ %.2f", totalSale);
     printf("\n\n////////////////////////////////////////////\n\n");
@@ -280,6 +285,7 @@ int main()
     // definição de estruturas e varivaveis
     struct Product products[MAX_PRODUCTS];
     struct Seller seller;
+    seller.balance = 0;
     int productCount = loadProducts(products, &seller);
     int choice;
 
